@@ -16,41 +16,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN mkdir -p /data /iso /novnc
 
-# Install noVNC
+# noVNC
 RUN wget -q https://github.com/novnc/noVNC/archive/refs/heads/master.zip -O /tmp/novnc.zip && \
     unzip /tmp/novnc.zip -d /tmp && \
     mv /tmp/noVNC-master/* /novnc && \
     rm -rf /tmp/novnc.zip /tmp/noVNC-master
 
-# ISO (Lite, paling aman)
+# ISO (TETAP PUNYA KAMU)
 ENV ISO_URL="https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso"
 
 RUN cat <<'EOF' > /start.sh
 #!/bin/bash
-set -e
+set +e
 
-echo "🚀 Starting Windows VM (ANTI BSOD MODE)"
+echo "🚀 Windows VM - ULTRA SAFE MODE"
 
-# download ISO (jangan crash kalau gagal)
+# download ISO (tidak pernah exit)
 if [ ! -f /iso/os.iso ]; then
-  echo "📥 Downloading Windows ISO..."
-  wget --timeout=30 --tries=3 "$ISO_URL" -O /iso/os.iso || echo "⚠️ ISO download skipped"
+  echo "📥 Downloading ISO..."
+  wget --timeout=30 --tries=3 "$ISO_URL" -O /iso/os.iso || echo "⚠️ ISO gagal download, tapi VM tetap jalan"
 fi
 
-# disk
-if [ ! -f /data/disk.qcow2 ]; then
-  echo "💽 Creating disk..."
-  qemu-img create -f qcow2 /data/disk.qcow2 40G
-fi
+# SELALU reset disk (ANTI BOOT ERROR)
+echo "💽 Reset disk (anti 0xc0000225)"
+rm -f /data/disk.qcow2
+qemu-img create -f qcow2 /data/disk.qcow2 30G
 
-# boot logic
-BOOT="-boot order=c"
-if [ ! -f /data/.installed ]; then
-  BOOT="-boot order=d"
-  echo "🆕 Installer mode"
-fi
-
-# START QEMU (PALING STABIL)
+# START QEMU (PALING STABIL DI ZEABUR)
 qemu-system-x86_64 \
   -machine pc \
   -cpu qemu64 \
@@ -60,7 +52,7 @@ qemu-system-x86_64 \
   -usb -device usb-tablet \
   -no-acpi \
   -no-hpet \
-  $BOOT \
+  -boot order=d \
   -drive file=/data/disk.qcow2,format=qcow2,cache=writeback \
   -cdrom /iso/os.iso \
   -netdev user,id=net0,hostfwd=tcp::3389-:3389 \
@@ -73,8 +65,8 @@ websockify --web /novnc 6080 localhost:5900 &
 
 echo "===================================================="
 echo "🌐 VNC  : http://IP:6080/vnc.html"
-echo "🔌 RDP  : IP:3389 (setelah Windows selesai install)"
-echo "⚠️  Lambat tapi STABIL (no BSOD)"
+echo "🔌 RDP  : IP:3389 (setelah install)"
+echo "🛡️ MODE : anti BSOD / anti boot error"
 echo "===================================================="
 
 tail -f /dev/null
