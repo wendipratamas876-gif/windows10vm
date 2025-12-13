@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Jakarta
 
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system-x86 \
     qemu-utils \
@@ -14,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
+# Directories
 RUN mkdir -p /data /iso /novnc
 
 # Install noVNC
@@ -22,35 +24,36 @@ RUN wget https://github.com/novnc/noVNC/archive/refs/heads/master.zip -O /tmp/no
     mv /tmp/noVNC-master/* /novnc && \
     rm -rf /tmp/novnc.zip /tmp/noVNC-master
 
-ENV ISO_URL="https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso"
+# ✅ Tiny10 ISO (STABLE FOR QEMU)
+ENV ISO_URL="https://archive.org/download/tiny10_23h2/tiny10_23h2_x64.iso"
 
-# Create start script (CORRECT WAY)
+# Start script
 RUN cat <<'EOF' > /start.sh
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Windows VM"
+echo "🚀 Starting Tiny10 Windows VM"
 
 # Download ISO
 if [ ! -f /iso/os.iso ]; then
-  echo "📥 Downloading Windows ISO..."
+  echo "📥 Downloading Tiny10 ISO..."
   wget --progress=dot:giga "$ISO_URL" -O /iso/os.iso
 fi
 
 # Create disk
 if [ ! -f /data/disk.qcow2 ]; then
-  echo "💽 Creating disk..."
+  echo "💽 Creating virtual disk..."
   qemu-img create -f qcow2 /data/disk.qcow2 60G
 fi
 
 # Boot logic
 BOOT_ORDER="-boot order=c"
 if [ ! -f /data/.installed ]; then
-  echo "🆕 First boot (Windows installer)"
+  echo "🆕 First boot: Windows installer"
   BOOT_ORDER="-boot order=d"
 fi
 
-# Start QEMU (SAFE FOR ZEABUR)
+# Start QEMU (NO KVM, SAFE FOR ZEABUR)
 qemu-system-x86_64 \
   -machine pc \
   -cpu qemu64 \
@@ -70,9 +73,9 @@ sleep 5
 websockify --web /novnc 6080 localhost:5900 &
 
 echo "===================================================="
-echo "🌐 noVNC  : http://localhost:6080"
-echo "🔌 RDP    : localhost:3389"
-echo "⏳ First boot bisa 20-30 menit"
+echo "🌐 noVNC : http://localhost:6080"
+echo "🔌 RDP   : localhost:3389"
+echo "⏳ First boot bisa 15–30 menit"
 echo "===================================================="
 
 tail -f /dev/null
