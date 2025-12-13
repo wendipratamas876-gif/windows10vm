@@ -24,7 +24,9 @@ RUN wget https://github.com/novnc/noVNC/archive/refs/heads/master.zip -O /tmp/no
 
 ENV ISO_URL="https://archive.org/download/windows-10-lite-edition-19h2-x64/Windows%2010%20Lite%20Edition%2019H2%20x64.iso"
 
-RUN echo '#!/bin/bash
+# Create start script (CORRECT WAY)
+RUN cat <<'EOF' > /start.sh
+#!/bin/bash
 set -e
 
 echo "🚀 Starting Windows VM"
@@ -74,7 +76,9 @@ echo "⏳ First boot bisa 20-30 menit"
 echo "===================================================="
 
 tail -f /dev/null
-' > /start.sh && chmod +x /start.sh
+EOF
+
+RUN chmod +x /start.sh
 
 VOLUME ["/data", "/iso"]
 EXPOSE 6080 3389
