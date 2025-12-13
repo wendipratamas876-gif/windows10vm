@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
+ENV TZ=Asia/Kolkata
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system-x86 \
